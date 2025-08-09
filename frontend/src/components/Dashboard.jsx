@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth, useLogout, useIsAuthenticated } from '../hooks/authHook';
-import { useCourses } from '../hooks/coursesHook';
+import { useCourses, useCourseProgress } from '../hooks/coursesHook';
 import { getFileUrl } from '../services/api';
 
 const Dashboard = () => {
@@ -9,6 +9,43 @@ const Dashboard = () => {
   const isAuthenticated = useIsAuthenticated();
   const logoutMutation = useLogout();
   const { data: courses = [], isLoading } = useCourses();
+
+  const CourseCard = ({ course }) => {
+    const { data: progress } = useCourseProgress(course.id, true);
+    const lessonsCount = course?.lessons?.length || 0;
+    const thumbnailUrl = getFileUrl(course?.thumbnail);
+    const percent = progress?.percentageCompleted ?? 0;
+    return (
+      <div className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden">
+        <div className="aspect-video bg-gray-100">
+          {thumbnailUrl ? (
+            <img src={thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
+          )}
+        </div>
+        <div className="p-4">
+          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h3>
+          {course.description && (
+            <p className="mt-1 text-sm text-gray-600 line-clamp-2">{course.description}</p>
+          )}
+          <div className="mt-3">
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-600" style={{ width: `${percent}%` }} />
+            </div>
+            <div className="mt-1 text-xs text-gray-600 flex justify-between">
+              <span>{percent}% completed</span>
+              <span>{lessonsCount} lesson{lessonsCount !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <span className="text-sm text-gray-500">&nbsp;</span>
+            <a href={`/courses/${course.id}`} className="text-indigo-600 text-sm font-medium hover:underline">View</a>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -48,31 +85,9 @@ const Dashboard = () => {
             <div className="text-gray-600">Loading courses...</div>
           ) : (
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {courses.map((course) => {
-                const lessonsCount = course?.lessons?.length || 0;
-                const thumbnailUrl = getFileUrl(course?.thumbnail);
-                return (
-                  <div key={course.id} className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden">
-                    <div className="aspect-video bg-gray-100">
-                      {thumbnailUrl ? (
-                        <img src={thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h3>
-                      {course.description && (
-                        <p className="mt-1 text-sm text-gray-600 line-clamp-2">{course.description}</p>
-                      )}
-                      <div className="mt-4 flex items-center justify-between">
-                        <span className="text-sm text-gray-500">{lessonsCount} lesson{lessonsCount !== 1 ? 's' : ''}</span>
-                        <a href={`/courses/${course.id}`} className="text-indigo-600 text-sm font-medium hover:underline">View</a>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {courses.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
             </div>
           )}
         </div>

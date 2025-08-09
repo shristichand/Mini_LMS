@@ -160,7 +160,8 @@ export const lessonsService = {
     if (order !== undefined) form.append("order", String(order));
     if (videoFile) form.append("video", videoFile);
     if (videoTitle !== undefined) form.append("videoTitle", videoTitle);
-    if (videoUrl !== undefined) form.append("videoUrl", videoUrl);
+    // Only append videoUrl if provided and looks like http(s)
+    if (videoUrl && /^https?:\/\//i.test(videoUrl)) form.append("videoUrl", videoUrl);
     if (videoDuration !== undefined) form.append("videoDuration", String(videoDuration));
     const res = await api.put(`/courses/lessons/${lessonId}`, form, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -169,6 +170,33 @@ export const lessonsService = {
   },
   deleteLesson: async (lessonId) => {
     const res = await api.delete(`/courses/lessons/${lessonId}`);
+    return res.data;
+  },
+};
+
+// Progress API
+export const progressService = {
+  getCourseProgress: async (courseId) => {
+    const res = await api.get(`/courses/${courseId}/progress`);
+    return res.data;
+  },
+  getVideoProgress: async (videoId) => {
+    const res = await api.get(`/videos/${videoId}/progress`);
+    return res.data;
+  },
+  updateVideoProgress: async (videoId, { watchedDuration, completed }) => {
+    const res = await api.put(`/videos/${videoId}/progress`, {
+      watchedDuration,
+      completed,
+    });
+    return res.data;
+  },
+};
+
+// Admin analytics API
+export const adminService = {
+  getUsersWithProgress: async () => {
+    const res = await api.get("/admin/users-with-progress");
     return res.data;
   },
 };

@@ -5,9 +5,10 @@ const {
     login,
     logout,
     getCurrentUser,
-    refreshToken
+    refreshToken,
+    getUsersWithProgress,
 } = require("../controllers/authController");
-const { jwtMiddleware } = require("../middlewares/jwtMiddleware");
+const { jwtMiddleware, adminOnly } = require("../middlewares/jwtMiddleware");
 const {
     signupValidator,
     loginValidator,
@@ -18,5 +19,8 @@ router.post("/login", loginValidator, login);
 router.post("/logout", logout);
 router.get("/me", jwtMiddleware, getCurrentUser);
 router.post("/refresh", refreshToken);
+
+// Admin analytics
+router.get("/admin/users-with-progress", jwtMiddleware, adminOnly, getUsersWithProgress);
 
 module.exports = router;

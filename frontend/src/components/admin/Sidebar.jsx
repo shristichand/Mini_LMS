@@ -1,8 +1,8 @@
-import { ChevronLeft, ChevronRight, LogOut } from "lucide-react"; // import LogOut icon
+import { ChevronLeft, ChevronRight, LogOut, LayoutGrid, BookOpen } from "lucide-react"; // import LogOut icon
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useLogout } from "../../hooks/authHook"; // adjust path to your hook
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(true);
@@ -82,7 +82,33 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         </button>
       </div>
 
-      <div className="flex-1" />
+      {/* Menu */}
+      <nav className="mt-4 flex-1 px-2 space-y-1">
+        <NavLink
+          to="/admin"
+          end
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2 rounded transition-colors ${
+              isActive ? "bg-white/20" : "hover:bg-white/10"
+            }`
+          }
+        >
+          <LayoutGrid size={18} color={whiteColor} />
+          {sidebarOpen && <span>Dashboard</span>}
+        </NavLink>
+
+        <NavLink
+          to="/admin/courses"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2 rounded transition-colors ${
+              isActive ? "bg-white/20" : "hover:bg-white/10"
+            }`
+          }
+        >
+          <BookOpen size={18} color={whiteColor} />
+          {sidebarOpen && <span>Courses</span>}
+        </NavLink>
+      </nav>
 
       {/* Logout button at the bottom */}
       <div className="p-4 border-t" style={{ borderColor: `${whiteColor}33` }}>

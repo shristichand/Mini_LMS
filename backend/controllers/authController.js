@@ -3,6 +3,10 @@ const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const Connection = require("../database/data-source");
 const User = require("../database/entities/User");
+const Course = require("../database/entities/Course");
+const Lesson = require("../database/entities/Lesson");
+const Progress = require("../database/entities/Progress");
+const { In } = require("typeorm");
 const JWT_SECRET = process.env.JWT_SECRET_KEY_ACCESS || "your_jwt_secret_here";
 const JWT_REFRESH_SECRET = process.env.JWT_SECRET_KEY_REFRESH || "your_jwt_refresh_secret_here";
 
@@ -224,5 +228,79 @@ module.exports = {
     login,
     logout,
     getCurrentUser,
-    refreshToken
+    refreshToken,
 };
+
+// Admin: Get all users with progress by course
+async function getUsersWithProgress(req, res) {
+    try {
+        const userRepo = Connection.getRepository(User);
+        const courseRepo = Connection.getRepository(Course);
+        const progressRepo = Connection.getRepository(Progress);
+
+        const [users, courses] = await Promise.all([
+            userRepo.find(),
+            courseRepo.find({ relations: ["lessons", "lessons.video"] }),
+        ]);
+
+        const userIds = users.map((u) => u.id);
+        const allVideoIds = courses
+            .flatMap((c) => c.lessons || [])
+            .map((l) => l.video?.id)
+            .filter((v) => typeof v === "number");
+
+        let progressList = [];
+        if (userIds.length && allVideoIds.length) {
+            progressList = await progressRepo.find({
+                where: { user: { id: In(userIds) }, video: { id: In(allVideoIds) } },
+                relations: ["user", "video"],
+            });
+        }
+
+        // Group progress by userId then by videoId
+        const userIdToVideoIdToProgress = new Map();
+        for (const p of progressList) {
+            const uid = p.user.id;
+            const vid = p.video.id;
+            if (!userIdToVideoIdToProgress.has(uid)) userIdToVideoIdToProgress.set(uid, new Map());
+            userIdToVideoIdToProgress.get(uid).set(vid, p);
+        }
+
+        const result = users.map((u) => {
+            let completedSum = 0;
+            let totalSum = 0;
+            const coursesProgress = courses.map((c) => {
+                const lessons = c.lessons || [];
+                const totalLessons = lessons.length;
+                const progressMap = userIdToVideoIdToProgress.get(u.id) || new Map();
+                const completedLessons = lessons.filter((l) => l.video?.id && progressMap.get(l.video.id)?.completed).length;
+                completedSum += completedLessons;
+                totalSum += totalLessons;
+                const percentageCompleted = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+                return {
+                    courseId: c.id,
+                    title: c.title,
+                    totalLessons,
+                    completedLessons,
+                    percentageCompleted,
+                };
+            });
+            const overallPercentage = totalSum > 0 ? Math.round((completedSum / totalSum) * 100) : 0;
+            return {
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                role: u.role,
+                overallPercentage,
+                courses: coursesProgress,
+            };
+        });
+
+        return res.json({ users: result });
+    } catch (error) {
+        console.error("getUsersWithProgress error:", error);
+        return res.status(500).json({ message: "Server error" });
+    }
+}
+
+module.exports.getUsersWithProgress = getUsersWithProgress;

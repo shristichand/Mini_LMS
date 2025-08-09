@@ -13,6 +13,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthRedirectHandler } from "./components/AuthRedirectHandler";
 import AdminLayout from "./pages/AdminLayout"; // import AdminLayout here
 import AdminDashboard from "./pages/AdminDashboard"; // example admin page
+import AdminCourses from "./pages/AdminCourses";
+import AdminLessons from "./pages/AdminLessons";
 import CourseDetail from "./components/CourseDetail";
 
 import "./App.css";
@@ -68,6 +70,8 @@ function App() {
             >
               {/* Nested routes under admin */}
               <Route index element={<AdminDashboard />} />
+              <Route path="courses" element={<AdminCourses />} />
+              <Route path="courses/:id/lessons" element={<AdminLessons />} />
               {/* Add more admin routes here, e.g.: */}
               {/* <Route path="users" element={<UsersPage />} /> */}
             </Route>
