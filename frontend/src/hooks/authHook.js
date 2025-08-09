@@ -1,7 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useDispatch, useSelector } from 'react-redux';
-import { authService } from '../services/api';
-import { setCredentials, logout as logoutAction, setError } from '../store/slices/authSlice';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDispatch, useSelector } from "react-redux";
+import { authService } from "../services/api";
+import {
+  setCredentials,
+  logout as logoutAction,
+  setError,
+} from "../store/slices/authSlice";
 import toast from "react-hot-toast";
 
 // Hook to get current auth state from Redux
@@ -18,18 +22,20 @@ export const useLogin = () => {
     mutationFn: authService.login,
     onSuccess: (data) => {
       // Save user and token to Redux store
-      dispatch(setCredentials({
-        user: data.user,
-        token: data.token,
-        permissions: data.user?.permissions || []
-      }));
-      
+      dispatch(
+        setCredentials({
+          user: data.user,
+          token: data.token,
+          permissions: data.user?.permissions || [],
+        })
+      );
+
       // Clear any cached queries
       queryClient.invalidateQueries();
-      toast.success('Login successful!');
+      toast.success("Login successful!");
     },
     onError: (error) => {
-      const errorMessage = error?.response?.data?.message || 'Login failed';
+      const errorMessage = error?.response?.data?.message || "Login failed";
       dispatch(setError(errorMessage));
       toast.error(errorMessage);
     },
@@ -45,18 +51,21 @@ export const useRegister = () => {
     mutationFn: authService.signup,
     onSuccess: (data) => {
       // Save user and token to Redux store
-      dispatch(setCredentials({
-        user: data.user,
-        token: data.token,
-        permissions: data.user?.permissions || []
-      }));
-      
+      dispatch(
+        setCredentials({
+          user: data.user,
+          token: data.token,
+          permissions: data.user?.permissions || [],
+        })
+      );
+
       // Clear any cached queries
       queryClient.invalidateQueries();
-      toast.success('Registration successful!');
+      toast.success("Registration successful!");
     },
     onError: (error) => {
-      const errorMessage = error?.response?.data?.message || 'Registration failed';
+      const errorMessage =
+        error?.response?.data?.message || "Registration failed";
       dispatch(setError(errorMessage));
       toast.error(errorMessage);
     },
@@ -71,23 +80,15 @@ export const useLogout = () => {
   return useMutation({
     mutationFn: authService.logout,
     onSuccess: () => {
-      // Clear Redux state
       dispatch(logoutAction());
-      
-      // Clear all queries from cache
       queryClient.clear();
-      toast.success('Logged out successfully');
-      
-      // Redirect to login
-      window.location.href = '/login';
+      toast.success("Logged out successfully");
     },
     onError: (error) => {
-      console.error('Logout error:', error);
-      // Even if API call fails, clear local state
+      console.error("Logout error:", error);
       dispatch(logoutAction());
       queryClient.clear();
-      toast.error('Logged out (with errors)');
-      window.location.href = '/login';
+      toast.error("Logged out (with errors)");
     },
   });
 };
@@ -95,9 +96,9 @@ export const useLogout = () => {
 // Get Current User Hook (as a query, not mutation)
 export const useGetCurrentUser = () => {
   const { token, isAuthenticated } = useAuth();
-  
+
   return useQuery({
-    queryKey: ['currentUser'],
+    queryKey: ["currentUser"],
     queryFn: authService.getCurrentUser,
     enabled: !!token && isAuthenticated, // Only run if user is authenticated
     retry: false, // Don't retry on failure
@@ -113,17 +114,18 @@ export const useRefreshToken = () => {
     mutationFn: authService.refreshToken,
     onSuccess: (data) => {
       // Update token in Redux store
-      dispatch(setCredentials({
-        user: data.user,
-        token: data.token,
-        permissions: data.user?.permissions || []
-      }));
+      dispatch(
+        setCredentials({
+          user: data.user,
+          token: data.token,
+          permissions: data.user?.permissions || [],
+        })
+      );
     },
     onError: (error) => {
-      console.error('Token refresh error:', error);
+      console.error("Token refresh error:", error);
       // Clear auth state and redirect to login
       dispatch(logoutAction());
-      window.location.href = '/login';
     },
   });
 };
@@ -145,5 +147,3 @@ export const useHasPermission = (permission) => {
   const permissions = useUserPermissions();
   return permissions.includes(permission);
 };
-
-

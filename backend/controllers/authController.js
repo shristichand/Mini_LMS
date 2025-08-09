@@ -53,6 +53,7 @@ async function login(req, res) {
         const userRepo = Connection.getRepository(User);
         const errors = validationResult(req);
         if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+        console.log("Backend login route hit:", req.body);
 
         const { email, password } = req.body;
         const user = await userRepo.findOneBy({ email });
