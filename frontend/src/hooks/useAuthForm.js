@@ -1,54 +1,78 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
-import { useLogin, useRegister } from './authHook';
-import { loginSchema, registerSchema } from '../utils/validationSchemas';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "react-router-dom";
+import { useLogin, useRegister } from "./authHook";
+import { loginSchema, registerSchema } from "../utils/validationSchemas";
+// import { useSelector } from "react-redux";
 
 export const useAuthForm = (isLogin = true) => {
   const navigate = useNavigate();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
+  // const user = useSelector((state) => state.auth.user);
 
   // Select the appropriate schema based on form type
   const schema = isLogin ? loginSchema : registerSchema;
-  
+
   // Default values for the form
   const defaultValues = {
-    email: '',
-    password: '',
-    ...(isLogin ? {} : { name: '', confirmPassword: '' }),
+    email: "",
+    password: "",
+    ...(isLogin ? {} : { name: "", confirmPassword: "" }),
   };
 
   // React Hook Form setup
   const form = useForm({
     resolver: zodResolver(schema),
-    mode: 'onChange', // Validate on change for better UX
+    mode: "onChange", // Validate on change for better UX
     defaultValues,
   });
 
-  const { handleSubmit, reset, formState: { errors, isValid, touchedFields } } = form;
+  const {
+    handleSubmit,
+    reset,
+    formState: { errors, isValid, touchedFields },
+  } = form;
 
   // Form submission handler
   const onSubmit = (data) => {
     if (isLogin) {
-      loginMutation.mutate({
-        email: data.email,
-        password: data.password,
-      }, {
-        onSuccess: () => {
-          navigate('/dashboard');
+      loginMutation.mutate(
+        {
+          email: data.email,
+          password: data.password,
+        },
+        {
+          onSuccess: (loginData) => {
+            const loggedInUser = loginData.user;
+
+            if (loggedInUser?.role === "admin") {
+              navigate("/admin"); // Or /admin/dashboard if you want
+            } else {
+              navigate("/dashboard");
+            }
+          },
         }
-      });
+      );
     } else {
-      registerMutation.mutate({
-        name: data.name,
-        email: data.email,
-        password: data.password,
-      }, {
-        onSuccess: () => {
-          navigate('/dashboard');
+      registerMutation.mutate(
+        {
+          name: data.name,
+          email: data.email,
+          password: data.password,
+        },
+        {
+          onSuccess: (registerData) => {
+            const registeredUser = registerData.user;
+
+            if (registeredUser?.role === "admin") {
+              navigate("/admin");
+            } else {
+              navigate("/dashboard");
+            }
+          },
         }
-      });
+      );
     }
   };
 
@@ -70,22 +94,22 @@ export const useAuthForm = (isLogin = true) => {
     ...form,
     handleSubmit: handleSubmit(onSubmit),
     resetForm,
-    
+
     // Form state
     errors,
     isValid,
     touchedFields,
     isLoading,
-    
+
     // Mutation states
     loginError: loginMutation.error,
     registerError: registerMutation.error,
-    
+
     // Helper functions
     getFieldError,
     isFieldTouched,
     hasFieldError,
-    
+
     // Mutations (for advanced usage)
     loginMutation,
     registerMutation,

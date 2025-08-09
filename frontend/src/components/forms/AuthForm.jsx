@@ -9,7 +9,6 @@ const AuthForm = ({ isLogin, onToggleMode }) => {
     resetForm,
     errors,
     isValid,
-    touchedFields,
     isLoading,
     getFieldError,
     isFieldTouched,
