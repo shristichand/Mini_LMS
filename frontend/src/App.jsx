@@ -13,6 +13,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthRedirectHandler } from "./components/AuthRedirectHandler";
 import AdminLayout from "./pages/AdminLayout"; // import AdminLayout here
 import AdminDashboard from "./pages/AdminDashboard"; // example admin page
+import CourseDetail from "./components/CourseDetail";
 
 import "./App.css";
 
@@ -42,6 +43,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Course detail */}
+            <Route
+              path="/courses/:id"
+              element={
+                <ProtectedRoute>
+                  <CourseDetail />
                 </ProtectedRoute>
               }
             />

@@ -67,7 +67,7 @@ const Dashboard = () => {
                       )}
                       <div className="mt-4 flex items-center justify-between">
                         <span className="text-sm text-gray-500">{lessonsCount} lesson{lessonsCount !== 1 ? 's' : ''}</span>
-                        <button className="text-indigo-600 text-sm font-medium hover:underline">View</button>
+                        <a href={`/courses/${course.id}`} className="text-indigo-600 text-sm font-medium hover:underline">View</a>
                       </div>
                     </div>
                   </div>
