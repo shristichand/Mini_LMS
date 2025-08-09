@@ -1,11 +1,14 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth, useLogout, useIsAuthenticated } from '../hooks/authHook';
+import { useCourses } from '../hooks/coursesHook';
+import { getFileUrl } from '../services/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const isAuthenticated = useIsAuthenticated();
   const logoutMutation = useLogout();
+  const { data: courses = [], isLoading } = useCourses();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -38,17 +41,40 @@ const Dashboard = () => {
       </nav>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Welcome to Your Dashboard
-              </h2>
-              <p className="text-gray-600">
-                You are successfully logged in! This is where your course content and learning materials will appear.
-              </p>
+        <div className="px-4 sm:px-0">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Courses</h2>
+
+          {isLoading ? (
+            <div className="text-gray-600">Loading courses...</div>
+          ) : (
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course) => {
+                const lessonsCount = course?.lessons?.length || 0;
+                const thumbnailUrl = getFileUrl(course?.thumbnail);
+                return (
+                  <div key={course.id} className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden">
+                    <div className="aspect-video bg-gray-100">
+                      {thumbnailUrl ? (
+                        <img src={thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h3>
+                      {course.description && (
+                        <p className="mt-1 text-sm text-gray-600 line-clamp-2">{course.description}</p>
+                      )}
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="text-sm text-gray-500">{lessonsCount} lesson{lessonsCount !== 1 ? 's' : ''}</span>
+                        <button className="text-indigo-600 text-sm font-medium hover:underline">View</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>

@@ -6,7 +6,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // Important for cookies
+  withCredentials: true,
 });
 
 // Request interceptor to add auth token from Redux state
@@ -86,6 +86,90 @@ export const authService = {
   refreshToken: async () => {
     const response = await api.post("/refresh");
     return response.data;
+  },
+};
+
+// Helper to turn server relative file path (e.g. /uploads/images/xyz.jpg)
+// into a full URL based on API base, stripping trailing /api
+export const getFileUrl = (path) => {
+  if (!path) return "";
+  // If absolute URL, return as is
+  if (/^https?:\/\//i.test(path)) return path;
+  const base = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/?api\/?$/, "");
+  return `${base}${path}`;
+};
+
+// Courses API
+export const coursesService = {
+  getCourses: async () => {
+    const res = await api.get("/courses");
+    return res.data;
+  },
+  getCourseById: async (id) => {
+    const res = await api.get(`/courses/${id}`);
+    return res.data;
+  },
+  createCourse: async ({ title, description, thumbnailFile }) => {
+    const form = new FormData();
+    form.append("title", title);
+    if (description) form.append("description", description);
+    if (thumbnailFile) form.append("thumbnail", thumbnailFile);
+    const res = await api.post("/courses", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  },
+  updateCourse: async (id, { title, description, thumbnailFile }) => {
+    const form = new FormData();
+    if (title !== undefined) form.append("title", title);
+    if (description !== undefined) form.append("description", description);
+    if (thumbnailFile) form.append("thumbnail", thumbnailFile);
+    const res = await api.put(`/courses/${id}`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  },
+  deleteCourse: async (id) => {
+    const res = await api.delete(`/courses/${id}`);
+    return res.data;
+  },
+};
+
+// Lessons API
+export const lessonsService = {
+  getLessonsByCourse: async (courseId) => {
+    const res = await api.get(`/courses/${courseId}/lessons`);
+    return res.data;
+  },
+  createLesson: async (courseId, { title, order, videoFile, videoTitle, videoUrl, videoDuration }) => {
+    const form = new FormData();
+    form.append("title", title);
+    if (order !== undefined) form.append("order", String(order));
+    if (videoFile) form.append("video", videoFile);
+    if (videoTitle) form.append("videoTitle", videoTitle);
+    if (videoUrl) form.append("videoUrl", videoUrl);
+    if (videoDuration !== undefined) form.append("videoDuration", String(videoDuration));
+    const res = await api.post(`/courses/${courseId}/lessons`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  },
+  updateLesson: async (lessonId, { title, order, videoFile, videoTitle, videoUrl, videoDuration }) => {
+    const form = new FormData();
+    if (title !== undefined) form.append("title", title);
+    if (order !== undefined) form.append("order", String(order));
+    if (videoFile) form.append("video", videoFile);
+    if (videoTitle !== undefined) form.append("videoTitle", videoTitle);
+    if (videoUrl !== undefined) form.append("videoUrl", videoUrl);
+    if (videoDuration !== undefined) form.append("videoDuration", String(videoDuration));
+    const res = await api.put(`/courses/lessons/${lessonId}`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  },
+  deleteLesson: async (lessonId) => {
+    const res = await api.delete(`/courses/lessons/${lessonId}`);
+    return res.data;
   },
 };
 
