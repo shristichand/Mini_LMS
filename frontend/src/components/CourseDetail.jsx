@@ -3,181 +3,293 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient, useQueries } from "@tanstack/react-query";
 import { coursesService, lessonsService, getFileUrl, progressService } from "../services/api";
 
+/**
+ * Video player component with progress tracking
+ * @param {Object} props - Component props
+ * @param {string} props.src - Video source URL
+ * @param {string} props.title - Video title
+ * @param {Function} props.onTime - Time update callback
+ * @param {Function} props.onEnded - Video ended callback
+ * @param {number} [props.initialTime=0] - Initial playback time
+ * @param {boolean} [props.autoPlay=true] - Whether to autoplay video
+ * @returns {JSX.Element|null} Video player JSX or null if no source
+ */
 const VideoPlayer = ({ src, title, onTime, onEnded, initialTime = 0, autoPlay = true }) => {
   const videoRef = useRef(null);
+
   useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    // Prepare handlers
-    const handleTime = () => onTime?.(Math.floor(el.currentTime));
-    const handleEnded = () => onEnded?.();
-    const handleLoaded = async () => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    /**
+     * Handle time updates and notify parent
+     */
+    const handleTimeUpdate = () => {
+      onTime?.(Math.floor(videoElement.currentTime));
+    };
+
+    /**
+     * Handle video completion
+     */
+    const handleEnded = () => {
+      onEnded?.();
+    };
+
+    /**
+     * Handle video metadata loaded
+     */
+    const handleLoadedMetadata = async () => {
+      // Set initial time if provided
       if (initialTime && !Number.isNaN(Number(initialTime))) {
-        el.currentTime = Number(initialTime);
+        videoElement.currentTime = Number(initialTime);
       }
+
+      // Autoplay if enabled
       if (autoPlay) {
         try {
-          await el.play();
-        } catch (_) {}
+          await videoElement.play();
+        } catch (error) {
+          // Autoplay may fail due to browser policies
+          console.warn('Autoplay failed:', error);
+        }
       }
     };
-    el.addEventListener("timeupdate", handleTime);
-    el.addEventListener("ended", handleEnded);
-    el.addEventListener("loadedmetadata", handleLoaded);
+
+    // Add event listeners
+    videoElement.addEventListener("timeupdate", handleTimeUpdate);
+    videoElement.addEventListener("ended", handleEnded);
+    videoElement.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+    // Cleanup event listeners
     return () => {
-      el.removeEventListener("timeupdate", handleTime);
-      el.removeEventListener("ended", handleEnded);
-    el.removeEventListener("loadedmetadata", handleLoaded);
+      videoElement.removeEventListener("timeupdate", handleTimeUpdate);
+      videoElement.removeEventListener("ended", handleEnded);
+      videoElement.removeEventListener("loadedmetadata", handleLoadedMetadata);
     };
   }, [src, initialTime, autoPlay, onTime, onEnded]);
 
   if (!src) return null;
+
   return (
-    <video ref={videoRef} controls className="w-full h-auto rounded-lg bg-black" src={getFileUrl(src)}>
+    <video 
+      ref={videoRef} 
+      controls 
+      className="w-full h-auto rounded-lg bg-black" 
+      src={getFileUrl(src)}
+    >
       Your browser does not support the video tag.
     </video>
   );
 };
 
+/**
+ * Lesson list item component for the sidebar
+ * @param {Object} props - Component props
+ * @param {Object} props.lesson - Lesson data
+ * @param {number} props.index - Lesson index
+ * @param {boolean} props.isActive - Whether lesson is currently active
+ * @param {boolean} props.isCompleted - Whether lesson is completed
+ * @param {Function} props.onSelect - Lesson selection handler
+ * @returns {JSX.Element} Lesson list item JSX
+ */
+const LessonListItem = ({ lesson, index, isActive, isCompleted, onSelect }) => {
+  return (
+    <button
+      onClick={() => onSelect(lesson.id)}
+      className={`w-full text-left p-4 hover:bg-gray-50 transition-colors flex items-center justify-between ${
+        isActive ? "bg-indigo-50" : ""
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 mt-1 text-indigo-600 font-semibold">
+          {index + 1}.
+        </div>
+        <div>
+          <div className="font-medium text-gray-900">{lesson.title}</div>
+          <div className="text-xs text-gray-500">
+            {lesson.video?.duration ? `${lesson.video.duration} seconds` : ""}
+          </div>
+        </div>
+      </div>
+      <input
+        type="checkbox"
+        checked={isCompleted}
+        readOnly
+        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+      />
+    </button>
+  );
+};
+
+/**
+ * Main course detail component displaying video player and lesson list
+ * @returns {JSX.Element} Course detail JSX
+ */
 const CourseDetail = () => {
-  const { id } = useParams();
+  const { id: courseId } = useParams();
   const [activeLessonId, setActiveLessonId] = useState(null);
 
   const queryClient = useQueryClient();
+
+  // Fetch course data
   const { data: course, isLoading: isCourseLoading } = useQuery({
-    queryKey: ["course", id],
-    queryFn: () => coursesService.getCourseById(id),
+    queryKey: ["course", courseId],
+    queryFn: () => coursesService.getCourseById(courseId),
+    staleTime: 60 * 1000, // 1 minute
   });
 
+  // Fetch lessons for the course
   const { data: lessons = [], isLoading: isLessonsLoading } = useQuery({
-    queryKey: ["lessons", id],
-    queryFn: () => lessonsService.getLessonsByCourse(id),
+    queryKey: ["lessons", courseId],
+    queryFn: () => lessonsService.getLessonsByCourse(courseId),
+    staleTime: 60 * 1000, // 1 minute
   });
 
+  // Determine active lesson (selected or first)
   const activeLesson = useMemo(() => {
     if (!lessons?.length) return null;
-    const first = lessons[0];
-    const found = lessons.find((l) => l.id === activeLessonId);
-    return found || first;
+    const firstLesson = lessons[0];
+    const selectedLesson = lessons.find((lesson) => lesson.id === activeLessonId);
+    return selectedLesson || firstLesson;
   }, [lessons, activeLessonId]);
 
-  // Fetch progress for all lesson videos so we can render checkboxes
+  // Fetch progress for all lesson videos
   const progressQueries = useQueries({
-    queries: (lessons || []).map((l) => ({
-      queryKey: ["videoProgress", l.video?.id],
-      queryFn: () => progressService.getVideoProgress(l.video.id),
-      enabled: !!l?.video?.id,
-      staleTime: 15 * 1000,
+    queries: (lessons || []).map((lesson) => ({
+      queryKey: ["videoProgress", lesson.video?.id],
+      queryFn: () => progressService.getVideoProgress(lesson.video.id),
+      enabled: !!lesson?.video?.id,
+      staleTime: 15 * 1000, // 15 seconds
     })),
   });
 
+  // Create progress lookup map
   const progressByVideoId = useMemo(() => {
-    const map = {};
-    (lessons || []).forEach((l, idx) => {
-      const vid = l.video?.id;
-      if (!vid) return;
-      const q = progressQueries[idx];
-      if (q?.data) map[vid] = q.data;
+    const progressMap = {};
+    (lessons || []).forEach((lesson, index) => {
+      const videoId = lesson.video?.id;
+      if (!videoId) return;
+      const query = progressQueries[index];
+      if (query?.data) {
+        progressMap[videoId] = query.data;
+      }
     });
-    return map;
+    return progressMap;
   }, [lessons, progressQueries]);
 
+  /**
+   * Handle video time updates (throttled to every 5 seconds)
+   * @param {number} seconds - Current playback time
+   */
   const handleTimeUpdate = async (seconds) => {
     const videoId = activeLesson?.video?.id;
     if (!videoId) return;
-    // Throttle by sending only every ~5 seconds of change via simple modulo
+
+    // Throttle updates to every 5 seconds
     if (seconds % 5 !== 0) return;
+
     try {
       await progressService.updateVideoProgress(videoId, {
         watchedDuration: seconds,
       });
-      // Also refresh course progress bar on dashboard if user navigates back
-      queryClient.invalidateQueries({ queryKey: ["courseProgress", Number(id)] });
-    } catch (_) {}
+      // Refresh course progress on dashboard
+      queryClient.invalidateQueries({ queryKey: ["courseProgress", Number(courseId)] });
+    } catch (error) {
+      console.warn('Failed to update video progress:', error);
+    }
   };
 
-  const handleEnded = async () => {
+  /**
+   * Handle video completion
+   */
+  const handleVideoEnded = async () => {
     const videoId = activeLesson?.video?.id;
     if (!videoId) return;
+
     try {
       await progressService.updateVideoProgress(videoId, {
         completed: true,
         watchedDuration: activeLesson?.video?.duration ?? undefined,
       });
-      queryClient.invalidateQueries({ queryKey: ["courseProgress", Number(id)] });
-    } catch (_) {}
+      // Refresh course progress
+      queryClient.invalidateQueries({ queryKey: ["courseProgress", Number(courseId)] });
+    } catch (error) {
+      console.warn('Failed to mark video as completed:', error);
+    }
 
-    // Autoplay next lesson if available
+    // Auto-advance to next lesson if available
     if (lessons?.length) {
-      const idx = lessons.findIndex((l) => l.id === activeLesson?.id);
-      if (idx >= 0 && idx + 1 < lessons.length) {
-        setActiveLessonId(lessons[idx + 1].id);
+      const currentIndex = lessons.findIndex((lesson) => lesson.id === activeLesson?.id);
+      if (currentIndex >= 0 && currentIndex + 1 < lessons.length) {
+        setActiveLessonId(lessons[currentIndex + 1].id);
       }
     }
   };
 
+  // Loading state
   if (isCourseLoading || isLessonsLoading) {
-    return <div className="max-w-7xl mx-auto p-6">Loading...</div>;
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-600 text-lg">Loading course...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-4">
-          <Link to="/dashboard" className="text-sm text-indigo-600 hover:underline">
+        {/* Navigation Header */}
+        <div className="mb-6">
+          <Link 
+            to="/dashboard" 
+            className="text-sm text-indigo-600 hover:underline transition-colors"
+          >
             ← Back to courses
           </Link>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">{course?.title}</h1>
+        {/* Course Title */}
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">{course?.title}</h1>
 
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Video Player Section */}
           <div className="lg:col-span-2">
             <VideoPlayer
               src={activeLesson?.video?.url}
               title={activeLesson?.title}
               initialTime={progressByVideoId?.[activeLesson?.video?.id]?.watchedDuration || 0}
               onTime={handleTimeUpdate}
-              onEnded={handleEnded}
+              onEnded={handleVideoEnded}
             />
-            <div className="mt-3">
+            
+            {/* Lesson Information */}
+            <div className="mt-4">
               <h2 className="text-lg font-semibold text-gray-900">{activeLesson?.title}</h2>
               {activeLesson?.description && (
-                <p className="text-sm text-gray-600 mt-1">{activeLesson.description}</p>
+                <p className="text-sm text-gray-600 mt-2">{activeLesson.description}</p>
               )}
             </div>
           </div>
 
+          {/* Lesson List Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow divide-y">
-              {lessons.map((lesson, idx) => {
-                const completed = !!progressByVideoId?.[lesson.video?.id]?.completed;
+              {lessons.map((lesson, index) => {
+                const isCompleted = !!progressByVideoId?.[lesson.video?.id]?.completed;
+                const isActive = activeLesson?.id === lesson.id;
+
                 return (
-                  <button
+                  <LessonListItem
                     key={lesson.id}
-                    onClick={() => setActiveLessonId(lesson.id)}
-                    className={`w-full text-left p-4 hover:bg-gray-50 transition flex items-center justify-between ${
-                      activeLesson?.id === lesson.id ? "bg-indigo-50" : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-1 text-indigo-600 font-semibold">
-                        {idx + 1}.
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{lesson.title}</div>
-                        <div className="text-xs text-gray-500">
-                          {lesson.video?.duration ? `${lesson.video.duration} sec` : ""}
-                        </div>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={completed}
-                      readOnly
-                      className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                  </button>
+                    lesson={lesson}
+                    index={index}
+                    isActive={isActive}
+                    isCompleted={isCompleted}
+                    onSelect={setActiveLessonId}
+                  />
                 );
               })}
             </div>

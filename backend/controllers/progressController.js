@@ -52,8 +52,13 @@ async function getCourseProgress(req, res, next) {
     });
 
     const completedLessons = progressList.filter((p) => p.completed).length;
-    const watchedLessons = progressList.filter((p) => (p.watchedDuration ?? 0) > 0).length;
-    const percentageCompleted = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+    const watchedLessons = progressList.filter(
+      (p) => (p.watchedDuration ?? 0) > 0
+    ).length;
+    const percentageCompleted =
+      totalLessons > 0
+        ? Math.round((completedLessons / totalLessons) * 100)
+        : 0;
 
     return res.json({
       courseId: Number(courseId),
@@ -79,7 +84,7 @@ async function updateProgress(req, res, next) {
 
     let progress = await progressRepo.findOne({
       where: { video: { id: videoId }, user: { id: userId } },
-      relations: ["video", "user"]
+      relations: ["video", "user"],
     });
 
     if (!progress) {
@@ -87,10 +92,11 @@ async function updateProgress(req, res, next) {
         video,
         user: { id: userId },
         watchedDuration,
-        completed
+        completed,
       });
     } else {
-      if (watchedDuration !== undefined) progress.watchedDuration = watchedDuration;
+      if (watchedDuration !== undefined)
+        progress.watchedDuration = watchedDuration;
       if (completed !== undefined) progress.completed = completed;
     }
 
@@ -109,7 +115,7 @@ async function getProgress(req, res, next) {
 
     const progress = await progressRepo.findOne({
       where: { video: { id: videoId }, user: { id: userId } },
-      relations: ["video"]
+      relations: ["video"],
     });
 
     res.json(progress || { watchedDuration: 0, completed: false });

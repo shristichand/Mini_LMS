@@ -1,29 +1,41 @@
-import { ChevronLeft, ChevronRight, LogOut, LayoutGrid, BookOpen } from "lucide-react"; // import LogOut icon
+import { ChevronLeft, ChevronRight, LogOut, LayoutGrid, BookOpen } from "lucide-react";
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { useLogout } from "../../hooks/authHook"; // adjust path to your hook
+import { useLogout } from "../../hooks/authHook";
 import { useNavigate, NavLink } from "react-router-dom";
 
+/**
+ * Admin sidebar navigation component
+ * @param {Object} props - Component props
+ * @param {boolean} props.isOpen - Whether sidebar is open
+ * @param {Function} props.toggleSidebar - Function to toggle sidebar
+ * @returns {JSX.Element} Sidebar JSX
+ */
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(true);
   const sidebarOpen = isOpen !== undefined ? isOpen : internalIsOpen;
   const handleToggle =
     toggleSidebar || (() => setInternalIsOpen(!internalIsOpen));
 
-  const primaryColor = "#1D4ED8";
-  const secondaryColor = "#2563EB";
-  const whiteColor = "#FFFFFF";
+  // Color constants
+  const PRIMARY_COLOR = "#1D4ED8";
+  const SECONDARY_COLOR = "#2563EB";
+  const WHITE_COLOR = "#FFFFFF";
 
   const logoutMutation = useLogout();
   const navigate = useNavigate();
 
+  /**
+   * Handle user logout
+   */
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
         navigate("/login");
       },
       onError: () => {
-        // optionally handle error, show toast, etc
+        // Optionally handle error, show toast, etc.
+        console.warn('Logout error occurred');
       },
     });
   };
@@ -33,22 +45,23 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       className="fixed top-0 left-0 h-screen text-white flex flex-col transition-all duration-300 z-50"
       style={{
         width: sidebarOpen ? "16rem" : "5rem",
-        backgroundColor: primaryColor,
+        backgroundColor: PRIMARY_COLOR,
       }}
     >
+      {/* Header */}
       <div
         className="flex items-center justify-between p-4 border-b flex-shrink-0"
-        style={{ borderColor: `${whiteColor}33` }}
+        style={{ borderColor: `${WHITE_COLOR}33` }}
       >
         {sidebarOpen ? (
           <div className="flex items-center gap-2">
             <div
               className="min-w-8 h-8 rounded-md flex items-center justify-center"
-              style={{ backgroundColor: whiteColor }}
+              style={{ backgroundColor: WHITE_COLOR }}
             >
               <span
                 className="font-bold text-lg"
-                style={{ color: primaryColor }}
+                style={{ color: PRIMARY_COLOR }}
               >
                 L
               </span>
@@ -68,21 +81,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             backgroundColor: "transparent",
           }}
           onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor = `${secondaryColor}33`)
+            (e.currentTarget.style.backgroundColor = `${SECONDARY_COLOR}33`)
           }
           onMouseLeave={(e) =>
             (e.currentTarget.style.backgroundColor = "transparent")
           }
         >
           {sidebarOpen ? (
-            <ChevronLeft size={20} color={whiteColor} />
+            <ChevronLeft size={20} color={WHITE_COLOR} />
           ) : (
-            <ChevronRight size={20} color={whiteColor} />
+            <ChevronRight size={20} color={WHITE_COLOR} />
           )}
         </button>
       </div>
 
-      {/* Menu */}
+      {/* Navigation Menu */}
       <nav className="mt-4 flex-1 px-2 space-y-1">
         <NavLink
           to="/admin"
@@ -93,7 +106,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             }`
           }
         >
-          <LayoutGrid size={18} color={whiteColor} />
+          <LayoutGrid size={18} color={WHITE_COLOR} />
           {sidebarOpen && <span>Dashboard</span>}
         </NavLink>
 
@@ -105,19 +118,19 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             }`
           }
         >
-          <BookOpen size={18} color={whiteColor} />
+          <BookOpen size={18} color={WHITE_COLOR} />
           {sidebarOpen && <span>Courses</span>}
         </NavLink>
       </nav>
 
-      {/* Logout button at the bottom */}
-      <div className="p-4 border-t" style={{ borderColor: `${whiteColor}33` }}>
+      {/* Logout Button */}
+      <div className="p-4 border-t" style={{ borderColor: `${WHITE_COLOR}33` }}>
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 w-full px-3 py-2 rounded hover:bg-white/20 transition-colors"
           type="button"
         >
-          <LogOut size={20} color={whiteColor} />
+          <LogOut size={20} color={WHITE_COLOR} />
           {sidebarOpen && <span>Logout</span>}
         </button>
       </div>

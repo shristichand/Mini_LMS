@@ -222,16 +222,6 @@ async function refreshToken(req, res) {
         });
     }
 }
-
-module.exports = {
-    signup,
-    login,
-    logout,
-    getCurrentUser,
-    refreshToken,
-};
-
-// Admin: Get all users with progress by course
 async function getUsersWithProgress(req, res) {
     try {
         const userRepo = Connection.getRepository(User);
@@ -303,4 +293,15 @@ async function getUsersWithProgress(req, res) {
     }
 }
 
-module.exports.getUsersWithProgress = getUsersWithProgress;
+module.exports = {
+    signup,
+    login,
+    logout,
+    getCurrentUser,
+    refreshToken,
+    getUsersWithProgress
+};
+
+
+
+

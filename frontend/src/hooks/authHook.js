@@ -8,12 +8,18 @@ import {
 } from "../store/slices/authSlice";
 import toast from "react-hot-toast";
 
-// Hook to get current auth state from Redux
+/**
+ * Hook to get current auth state from Redux
+ * @returns {Object} Current authentication state
+ */
 export const useAuth = () => {
   return useSelector((state) => state.auth);
 };
 
-// Login Hook
+/**
+ * Login mutation hook
+ * @returns {Object} Login mutation object with success/error handling
+ */
 export const useLogin = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
@@ -42,7 +48,10 @@ export const useLogin = () => {
   });
 };
 
-// Register/Signup Hook
+/**
+ * Registration mutation hook
+ * @returns {Object} Registration mutation object with success/error handling
+ */
 export const useRegister = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
@@ -72,7 +81,10 @@ export const useRegister = () => {
   });
 };
 
-// Logout Hook
+/**
+ * Logout mutation hook
+ * @returns {Object} Logout mutation object with cleanup handling
+ */
 export const useLogout = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
@@ -86,6 +98,7 @@ export const useLogout = () => {
     },
     onError: (error) => {
       console.error("Logout error:", error);
+      // Still clear state even if API call fails
       dispatch(logoutAction());
       queryClient.clear();
       toast.error("Logged out (with errors)");
@@ -93,7 +106,10 @@ export const useLogout = () => {
   });
 };
 
-// Get Current User Hook (as a query, not mutation)
+/**
+ * Get current user query hook
+ * @returns {Object} Current user query object
+ */
 export const useGetCurrentUser = () => {
   const { token, isAuthenticated } = useAuth();
 
@@ -106,7 +122,10 @@ export const useGetCurrentUser = () => {
   });
 };
 
-// Refresh Token Hook
+/**
+ * Refresh token mutation hook
+ * @returns {Object} Token refresh mutation object
+ */
 export const useRefreshToken = () => {
   const dispatch = useDispatch();
 
@@ -130,19 +149,29 @@ export const useRefreshToken = () => {
   });
 };
 
-// Helper hook to check if user is authenticated
+/**
+ * Helper hook to check if user is authenticated
+ * @returns {boolean} True if user is authenticated
+ */
 export const useIsAuthenticated = () => {
   const { isAuthenticated, token } = useAuth();
   return isAuthenticated && !!token;
 };
 
-// Helper hook to get user permissions
+/**
+ * Helper hook to get user permissions
+ * @returns {Array} Array of user permissions
+ */
 export const useUserPermissions = () => {
   const { permissions } = useAuth();
   return permissions || [];
 };
 
-// Helper hook to check if user has specific permission
+/**
+ * Helper hook to check if user has specific permission
+ * @param {string} permission - Permission to check
+ * @returns {boolean} True if user has the permission
+ */
 export const useHasPermission = (permission) => {
   const permissions = useUserPermissions();
   return permissions.includes(permission);

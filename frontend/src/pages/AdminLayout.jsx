@@ -3,9 +3,16 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "../components/admin/Sidebar";
 import { Toaster } from "react-hot-toast";
 
+/**
+ * Admin layout component that provides sidebar navigation and content area
+ * @returns {JSX.Element} Admin layout JSX
+ */
 const AdminLayout = () => {
   const [isOpen, setIsOpen] = useState(true);
 
+  /**
+   * Toggle sidebar open/closed state
+   */
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
@@ -15,7 +22,6 @@ const AdminLayout = () => {
       <Sidebar isOpen={isOpen} toggleSidebar={toggleSidebar} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-
         <main
           className={`transition-all duration-300 overflow-x-hidden overflow-y-auto bg-gray-200 ${
             isOpen ? "ml-64" : "ml-20"
@@ -27,6 +33,7 @@ const AdminLayout = () => {
         </main>
       </div>
 
+      {/* Toast notifications */}
       <Toaster
         position="top-right"
         toastOptions={{

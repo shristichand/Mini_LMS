@@ -3,10 +3,11 @@ import { createSlice } from '@reduxjs/toolkit'
 const initialState = {
   user: null,
   token: null,
-  isAuthenticated: false,  
+  isAuthenticated: false,
   error: null,
   redirectAfterLogin: null,
-  permissions: []
+  permissions: [],
+  isBootstrapping: true,
 }
 
 const authSlice = createSlice({
@@ -57,9 +58,21 @@ const authSlice = createSlice({
     },
     
     // Initialize auth state from persisted state
-    initializeAuth: (state) => {
-      // This will be handled by Redux Persist automatically
-      // No manual localStorage handling needed
+    initializeAuthStart: (state) => {
+      state.isBootstrapping = true;
+    },
+    initializeAuthSuccess: (state, action) => {
+      const { user, token, permissions } = action.payload || {};
+      if (user && token) {
+        state.user = user;
+        state.token = token;
+        state.isAuthenticated = true;
+        state.permissions = permissions || [];
+      }
+      state.isBootstrapping = false;
+    },
+    initializeAuthFailure: (state) => {
+      state.isBootstrapping = false;
     }
   }
 });
@@ -73,7 +86,9 @@ export const {
   clearRedirectAfterLogin,
   updateUser,
   setPermissions,
-  initializeAuth
+  initializeAuthStart,
+  initializeAuthSuccess,
+  initializeAuthFailure
 } = authSlice.actions;
 
 export default authSlice.reducer;

@@ -7,13 +7,15 @@ import authReducer from './slices/authSlice';
 const authPersistConfig = {
   key: 'auth',
   storage,
-  whitelist: ['user', 'token', 'isAuthenticated', 'permissions'], // Only persist these fields
-  blacklist: ['error', 'redirectAfterLogin'] // Don't persist these fields
+  // Only persist non-sensitive data for security
+  whitelist: ['user', 'permissions'],
+  blacklist: ['error', 'redirectAfterLogin', 'token', 'isAuthenticated', 'isBootstrapping']
 };
 
 // Create persisted reducer
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
 
+// Configure store with proper middleware and serialization checks
 export const store = configureStore({
   reducer: {
     auth: persistedAuthReducer,
@@ -22,10 +24,14 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+        ignoredPaths: ['auth.user'], // Ignore user object serialization issues
       },
+      // Add custom middleware if needed
     }),
+  devTools: process.env.NODE_ENV !== 'production',
 });
 
+// Create persistor for Redux Persist
 export const persistor = persistStore(store);
 
 export default store;

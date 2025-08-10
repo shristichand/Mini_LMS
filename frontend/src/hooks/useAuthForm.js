@@ -3,13 +3,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import { useLogin, useRegister } from "./authHook";
 import { loginSchema, registerSchema } from "../utils/validationSchemas";
-// import { useSelector } from "react-redux";
 
+/**
+ * Custom hook for authentication form management
+ * @param {boolean} isLogin - Whether the form is in login mode
+ * @returns {Object} Form methods and state
+ */
 export const useAuthForm = (isLogin = true) => {
   const navigate = useNavigate();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
-  // const user = useSelector((state) => state.auth.user);
 
   // Select the appropriate schema based on form type
   const schema = isLogin ? loginSchema : registerSchema;
@@ -34,7 +37,10 @@ export const useAuthForm = (isLogin = true) => {
     formState: { errors, isValid, touchedFields },
   } = form;
 
-  // Form submission handler
+  /**
+   * Form submission handler
+   * @param {Object} data - Form data
+   */
   const onSubmit = (data) => {
     if (isLogin) {
       loginMutation.mutate(
@@ -47,7 +53,7 @@ export const useAuthForm = (isLogin = true) => {
             const loggedInUser = loginData.user;
 
             if (loggedInUser?.role === "admin") {
-              navigate("/admin"); // Or /admin/dashboard if you want
+              navigate("/admin");
             } else {
               navigate("/dashboard");
             }
@@ -76,7 +82,9 @@ export const useAuthForm = (isLogin = true) => {
     }
   };
 
-  // Reset form when switching between login/register
+  /**
+   * Reset form when switching between login/register
+   */
   const resetForm = () => {
     reset(defaultValues);
   };
