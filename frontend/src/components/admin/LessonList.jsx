@@ -1,4 +1,5 @@
 import React from "react";
+import toast from "react-hot-toast";
 
 /**
  * Lesson list component displaying all lessons for a course
@@ -25,9 +26,30 @@ const LessonList = ({ lessons, onEdit, onDelete, isDeleting }) => {
    * @param {string|number} lessonId - Lesson ID to delete
    */
   const handleDeleteLesson = (lessonId) => {
-    if (window.confirm('Are you sure you want to delete this lesson?')) {
-      onDelete(lessonId);
-    }
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <span>Are you sure you want to delete this lesson?</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              onDelete(lessonId);
+              toast.dismiss(t.id); // close toast
+            }}
+            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Yes
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)} // close without deleting
+            className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+          >
+            No
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000, // toast will auto-close after 5s if not clicked
+    });
   };
 
   return (
@@ -63,7 +85,7 @@ const LessonItem = ({ lesson, index, onEdit, onDelete, isDeleting }) => {
       <div className="text-indigo-600 font-semibold w-6">
         {index + 1}.
       </div>
-      
+
       {/* Lesson Information */}
       <div className="flex-1">
         <div className="font-medium text-gray-900">{lesson.title}</div>
@@ -73,7 +95,7 @@ const LessonItem = ({ lesson, index, onEdit, onDelete, isDeleting }) => {
           </div>
         )}
       </div>
-      
+
       {/* Lesson Actions */}
       <div className="flex gap-2">
         <button
