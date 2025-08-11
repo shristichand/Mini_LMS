@@ -5,14 +5,6 @@ import { coursesService, lessonsService, getFileUrl, progressService } from "../
 
 /**
  * Video player component with progress tracking
- * @param {Object} props - Component props
- * @param {string} props.src - Video source URL
- * @param {string} props.title - Video title
- * @param {Function} props.onTime - Time update callback
- * @param {Function} props.onEnded - Video ended callback
- * @param {number} [props.initialTime=0] - Initial playback time
- * @param {boolean} [props.autoPlay=true] - Whether to autoplay video
- * @returns {JSX.Element|null} Video player JSX or null if no source
  */
 const VideoPlayer = ({ src, title, onTime, onEnded, initialTime = 0, autoPlay = true }) => {
   const videoRef = useRef(null);
@@ -21,46 +13,32 @@ const VideoPlayer = ({ src, title, onTime, onEnded, initialTime = 0, autoPlay = 
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
-    /**
-     * Handle time updates and notify parent
-     */
     const handleTimeUpdate = () => {
       onTime?.(Math.floor(videoElement.currentTime));
     };
 
-    /**
-     * Handle video completion
-     */
     const handleEnded = () => {
       onEnded?.();
     };
 
-    /**
-     * Handle video metadata loaded
-     */
     const handleLoadedMetadata = async () => {
-      // Set initial time if provided
       if (initialTime && !Number.isNaN(Number(initialTime))) {
         videoElement.currentTime = Number(initialTime);
       }
 
-      // Autoplay if enabled
       if (autoPlay) {
         try {
           await videoElement.play();
         } catch (error) {
-          // Autoplay may fail due to browser policies
           console.warn('Autoplay failed:', error);
         }
       }
     };
 
-    // Add event listeners
     videoElement.addEventListener("timeupdate", handleTimeUpdate);
     videoElement.addEventListener("ended", handleEnded);
     videoElement.addEventListener("loadedmetadata", handleLoadedMetadata);
 
-    // Cleanup event listeners
     return () => {
       videoElement.removeEventListener("timeupdate", handleTimeUpdate);
       videoElement.removeEventListener("ended", handleEnded);
@@ -71,10 +49,10 @@ const VideoPlayer = ({ src, title, onTime, onEnded, initialTime = 0, autoPlay = 
   if (!src) return null;
 
   return (
-    <video 
-      ref={videoRef} 
-      controls 
-      className="w-full h-auto rounded-lg bg-black" 
+    <video
+      ref={videoRef}
+      controls
+      className="w-full h-auto rounded-lg bg-black"
       src={getFileUrl(src)}
     >
       Your browser does not support the video tag.
@@ -83,125 +61,111 @@ const VideoPlayer = ({ src, title, onTime, onEnded, initialTime = 0, autoPlay = 
 };
 
 /**
- * Lesson list item component for the sidebar
- * @param {Object} props - Component props
- * @param {Object} props.lesson - Lesson data
- * @param {number} props.index - Lesson index
- * @param {boolean} props.isActive - Whether lesson is currently active
- * @param {boolean} props.isCompleted - Whether lesson is completed
- * @param {Function} props.onSelect - Lesson selection handler
- * @returns {JSX.Element} Lesson list item JSX
+ * Lesson list item component
  */
-const LessonListItem = ({ lesson, index, isActive, isCompleted, onSelect }) => {
-  return (
-    <button
-      onClick={() => onSelect(lesson.id)}
-      className={`w-full text-left p-4 hover:bg-gray-50 transition-colors flex items-center justify-between ${
-        isActive ? "bg-indigo-50" : ""
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 mt-1 text-indigo-600 font-semibold">
-          {index + 1}.
-        </div>
-        <div>
-          <div className="font-medium text-gray-900">{lesson.title}</div>
-          <div className="text-xs text-gray-500">
-            {lesson.video?.duration ? `${lesson.video.duration} seconds` : ""}
-          </div>
+const LessonListItem = ({ lesson, index, isActive, isCompleted, onSelect }) => (
+  <button
+    onClick={() => onSelect(lesson.id)}
+    className={`w-full text-left p-4 hover:bg-gray-50 transition-colors flex items-center justify-between ${
+      isActive ? "bg-indigo-50" : ""
+    }`}
+  >
+    <div className="flex items-start gap-3">
+      <div className="flex-shrink-0 mt-1 text-indigo-600 font-semibold">{index + 1}.</div>
+      <div>
+        <div className="font-medium text-gray-900">{lesson.title}</div>
+        <div className="text-xs text-gray-500">
+          {lesson.video?.duration ? `${lesson.video.duration} seconds` : ""}
         </div>
       </div>
-      <input
-        type="checkbox"
-        checked={isCompleted}
-        readOnly
-        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-      />
-    </button>
-  );
-};
+    </div>
+    <input
+      type="checkbox"
+      checked={isCompleted}
+      readOnly
+      className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+    />
+  </button>
+);
 
 /**
- * Main course detail component displaying video player and lesson list
- * @returns {JSX.Element} Course detail JSX
+ * Main course detail component
  */
 const CourseDetail = () => {
   const { id: courseId } = useParams();
   const [activeLessonId, setActiveLessonId] = useState(null);
-
   const queryClient = useQueryClient();
 
-  // Fetch course data
+  // For throttling progress updates
+  const lastUpdateRef = useRef(0);
+
+  // Fetch course info
   const { data: course, isLoading: isCourseLoading } = useQuery({
     queryKey: ["course", courseId],
     queryFn: () => coursesService.getCourseById(courseId),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 
-  // Fetch lessons for the course
+  // Fetch lessons
   const { data: lessons = [], isLoading: isLessonsLoading } = useQuery({
     queryKey: ["lessons", courseId],
     queryFn: () => lessonsService.getLessonsByCourse(courseId),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 
-  // Determine active lesson (selected or first)
+  // Select active lesson
   const activeLesson = useMemo(() => {
-    if (!lessons?.length) return null;
-    const firstLesson = lessons[0];
-    const selectedLesson = lessons.find((lesson) => lesson.id === activeLessonId);
-    return selectedLesson || firstLesson;
+    if (!lessons.length) return null;
+    const selected = lessons.find(l => l.id === activeLessonId);
+    return selected || lessons[0];
   }, [lessons, activeLessonId]);
 
-  // Fetch progress for all lesson videos
+  // Fetch video progress for all lessons
   const progressQueries = useQueries({
-    queries: (lessons || []).map((lesson) => ({
+    queries: lessons.map((lesson) => ({
       queryKey: ["videoProgress", lesson.video?.id],
       queryFn: () => progressService.getVideoProgress(lesson.video.id),
       enabled: !!lesson?.video?.id,
-      staleTime: 15 * 1000, // 15 seconds
+      staleTime: 15 * 1000,
     })),
   });
 
-  // Create progress lookup map
+  // Map videoId => progress
   const progressByVideoId = useMemo(() => {
-    const progressMap = {};
-    (lessons || []).forEach((lesson, index) => {
+    const map = {};
+    lessons.forEach((lesson, idx) => {
       const videoId = lesson.video?.id;
       if (!videoId) return;
-      const query = progressQueries[index];
+      const query = progressQueries[idx];
       if (query?.data) {
-        progressMap[videoId] = query.data;
+        map[videoId] = query.data;
       }
     });
-    return progressMap;
+    return map;
   }, [lessons, progressQueries]);
 
-  /**
-   * Handle video time updates (throttled to every 5 seconds)
-   * @param {number} seconds - Current playback time
-   */
+  // Throttled update handler for video time updates
   const handleTimeUpdate = async (seconds) => {
     const videoId = activeLesson?.video?.id;
     if (!videoId) return;
 
-    // Throttle updates to every 5 seconds
-    if (seconds % 5 !== 0) return;
+    if (seconds - lastUpdateRef.current < 5) return; // throttle for 5 seconds
+
+    lastUpdateRef.current = seconds;
 
     try {
       await progressService.updateVideoProgress(videoId, {
         watchedDuration: seconds,
       });
-      // Refresh course progress on dashboard
-      queryClient.invalidateQueries({ queryKey: ["courseProgress", Number(courseId)] });
+      queryClient.invalidateQueries({
+        queryKey: ["courseProgress", Number(courseId)],
+      });
     } catch (error) {
-      console.warn('Failed to update video progress:', error);
+      console.warn("Failed to update video progress:", error);
     }
   };
 
-  /**
-   * Handle video completion
-   */
+  // Mark video as completed on end
   const handleVideoEnded = async () => {
     const videoId = activeLesson?.video?.id;
     if (!videoId) return;
@@ -211,22 +175,20 @@ const CourseDetail = () => {
         completed: true,
         watchedDuration: activeLesson?.video?.duration ?? undefined,
       });
-      // Refresh course progress
       queryClient.invalidateQueries({ queryKey: ["courseProgress", Number(courseId)] });
     } catch (error) {
-      console.warn('Failed to mark video as completed:', error);
+      console.warn("Failed to mark video as completed:", error);
     }
 
-    // Auto-advance to next lesson if available
-    if (lessons?.length) {
-      const currentIndex = lessons.findIndex((lesson) => lesson.id === activeLesson?.id);
+    // Auto advance to next lesson
+    if (lessons.length) {
+      const currentIndex = lessons.findIndex((l) => l.id === activeLesson.id);
       if (currentIndex >= 0 && currentIndex + 1 < lessons.length) {
         setActiveLessonId(lessons[currentIndex + 1].id);
       }
     }
   };
 
-  // Loading state
   if (isCourseLoading || isLessonsLoading) {
     return (
       <div className="max-w-7xl mx-auto p-6">
@@ -240,22 +202,18 @@ const CourseDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6">
-        {/* Navigation Header */}
         <div className="mb-6">
-          <Link 
-            to="/dashboard" 
+          <Link
+            to="/dashboard"
             className="text-sm text-indigo-600 hover:underline transition-colors"
           >
             ← Back to courses
           </Link>
         </div>
 
-        {/* Course Title */}
         <h1 className="text-2xl font-bold text-gray-900 mb-6">{course?.title}</h1>
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Video Player Section */}
           <div className="lg:col-span-2">
             <VideoPlayer
               src={activeLesson?.video?.url}
@@ -264,8 +222,7 @@ const CourseDetail = () => {
               onTime={handleTimeUpdate}
               onEnded={handleVideoEnded}
             />
-            
-            {/* Lesson Information */}
+
             <div className="mt-4">
               <h2 className="text-lg font-semibold text-gray-900">{activeLesson?.title}</h2>
               {activeLesson?.description && (
@@ -274,7 +231,6 @@ const CourseDetail = () => {
             </div>
           </div>
 
-          {/* Lesson List Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow divide-y">
               {lessons.map((lesson, index) => {
@@ -301,5 +257,3 @@ const CourseDetail = () => {
 };
 
 export default CourseDetail;
-
-
