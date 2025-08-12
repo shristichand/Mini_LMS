@@ -59,3 +59,5 @@ npm run migration:revert
 # Seed database
 npm run seed
 ```
+
+For API documentation : https://documenter.getpostman.com/view/39782349/2sB3BEnVav
